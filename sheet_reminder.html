@@ -16,7 +16,7 @@
   <pre id="log">Loading reminders...</pre>
 
   <script>
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/1hxtduJXod17uE2jELMs2-8MXQVXAOg_znos9tRNZTus/gviz/tq?tqx=out:csv&sheet=Sheet1"; // <-- Paste your CSV URL here
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/1hxtduJXod17uE2jELMs2-8MXQVXAOg_znos9tRNZTus/pub?output=csv"; // <-- Paste your CSV URL here
 
     function parseRepeatInterval(str) {
       const match = str.toLowerCase().match(/every\s*(\d+)\s*(minute|hour|day|week|month|year)s?/);
