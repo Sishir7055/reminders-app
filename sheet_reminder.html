@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sheet Reminder App</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
+    h1 { color: #333; }
+    pre { background: #fff; padding: 10px; border: 1px solid #ccc; max-height: 300px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+  <h1>⏰ Loading Reminders from Google Sheet</h1>
+  <p>Notifications will pop up when reminder time hits.</p>
+  <pre id="log">Loading reminders...</pre>
+
+  <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/1hxtduJXod17uE2jELMs2-8MXQVXAOg_znos9tRNZTus/gviz/tq?tqx=out:csv&sheet=Sheet1"; // <-- Paste your CSV URL here
+
+    function parseRepeatInterval(str) {
+      const match = str.toLowerCase().match(/every\s*(\d+)\s*(minute|hour|day|week|month|year)s?/);
+      if (!match) return null;
+
+      const value = parseInt(match[1]);
+      const unit = match[2];
+
+      const units = {
+        minute: 60000,
+        hour: 3600000,
+        day: 86400000,
+        week: 604800000,
+        month: 2629800000,
+        year: 31557600000
+      };
+
+      return value * (units[unit] || 0);
+    }
+
+    async function fetchReminders() {
+      try {
+        const res = await fetch(sheetUrl);
+        const csv = await res.text();
+        const lines = csv.split("\n");
+        const headers = lines[0].split(",");
+        const reminders = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(",");
+          if (cols.length < 4) continue;
+
+          const [title, content, timeStr, repeat] = cols;
+          const reminderTime = new Date(timeStr.trim()).getTime();
+          const now = new Date().getTime();
+          const interval = parseRepeatInterval(repeat);
+
+          if (isNaN(reminderTime)) continue;
+
+          // Schedule if time has not passed yet, or schedule next time
+          let delay = reminderTime - now;
+          if (delay < 0 && interval) {
+            const missedCycles = Math.floor(Math.abs(delay) / interval);
+            delay = interval - (Math.abs(delay) % interval);
+          }
+
+          if (delay > 0) {
+            scheduleReminder(title, content, delay, interval);
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching reminders:", e);
+        document.getElementById("log").textContent += "\n❌ Error loading data.";
+      }
+    }
+
+    function scheduleReminder(title, content, delay, interval) {
+      setTimeout(() => {
+        if (Notification.permission === "granted") {
+          new Notification(title, {
+            body: content.slice(0, 50),
+            icon: "https://i.imgur.com/9nRnb4k.png" 
+          });
+        }
+
+        if (interval) {
+          scheduleReminder(title, content, interval, interval); // repeat
+        }
+      }, delay);
+    }
+
+    // Start everything
+    Notification.requestPermission().then(() => {
+      fetchReminders();
+    });
+
+    // Optional: Reload every 10 minutes in case of updates
+    setInterval(fetchReminders, 600000);
+  </script>
+
+</body>
+</html>
